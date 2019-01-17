@@ -44,7 +44,6 @@ class Transformer {
         $history = $this->replaceHistory;
         $from    = $history->from;
         $to      = $history->to;
-        
         $search = preg_quote($from);
         $this->str = preg_replace("/^((?:(?:.*?$search){".--$index."}.*?))$search/i", "$1$to", $this->str); 
         return $this;
@@ -53,8 +52,9 @@ class Transformer {
     function replaceFirst($count = 1, $latin = true){
         $word = $this->replaceHistory->from;
         $pattern = $latin === true ? "/\b$word\b/i" : "/$word/i";
-        $srch = preg_match_all($pattern, $this->str, $match);
+        preg_match_all($pattern, $this->str, $match);
         $found = $match[0];
+        rsort($found);
         $step = 0;
         for($i = 1;$i <= count($found); $i++){
             if($i > $count) break;
@@ -64,14 +64,33 @@ class Transformer {
         }
         return $this;
     }
+
+    function replaceRand($count = 1){
+        $word = $this->replaceHistory->from;
+        $pattern = "/$word/i";
+        preg_match_all($pattern, $this->str, $match);
+        $found = $match[0];
+        $matches_count = count($found);
+
+        $rnd = range(1, $matches_count);
+        shuffle($rnd);
+        $rnd = array_slice($rnd, 0, $count);
+        rsort($rnd, SORT_NUMERIC);
+        
+        for($i = 0;$i < count($rnd);$i++){
+            $index = $rnd[$i];
+            $this->replaceIndex($index);
+        }
+        return $rnd;
+    }
     
     function highlightWord($word = null){
         $pos = stripos($this->str, $word);
-        if($pos <= 0) return;
+        if($pos <= 0) return null;
         else {
             $len = strlen($word);
             $till = $pos + $len;
-            return "from $pos to $till";
+            return ["from" => $pos, "till" => $till];
         }
     }
 

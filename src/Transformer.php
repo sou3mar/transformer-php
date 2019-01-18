@@ -8,22 +8,12 @@ class Transformer {
         $this->str = $str;
     }
 
-    function from($from){
-        $this->from = $from;
-        return $this;
-    }
-
-    function to($to){
-        $this->to = $to;
-        return $this;
-    }
-
     function toLower(){
         $this->str = strtolower($this->str);
         return $this;
     }
     
-    function getMatchedParts(){
+    function getTagsMatch(){
         preg_match_all('/\>(.*)\</', $this->str, $match);
         return $match[1];
     }
@@ -40,38 +30,39 @@ class Transformer {
         return $this->replaceHistory;
     }
     
+    function getMatches($word = '', $byWord  = true) {
+        $pattern = $byWord === true ? "/\b$word\b/i" : "/$word/i";
+        preg_match_all($pattern, $this->str, $match);
+        return $match[0];
+    }
+    
     function replaceIndex($index = 1){
         $history = $this->replaceHistory;
         $from    = $history->from;
         $to      = $history->to;
-        $search = preg_quote($from);
+        $search  = preg_quote($from);
         $this->str = preg_replace("/^((?:(?:.*?$search){".--$index."}.*?))$search/i", "$1$to", $this->str); 
         return $this;
     }
     
-    function replaceFirst($count = 1, $latin = true){
+    function replaceFirst($count = 1, $byWord = true){
         $word = $this->replaceHistory->from;
-        $pattern = $latin === true ? "/\b$word\b/i" : "/$word/i";
-        preg_match_all($pattern, $this->str, $match);
-        $found = $match[0];
+        $found = $this->getMatches($word, $byWord);
         rsort($found);
         $step = 0;
         for($i = 1;$i <= count($found); $i++){
             if($i > $count) break;
-            if($i == 1) $this->replaceIndex($i);
+            if($i === 1) $this->replaceIndex($i);
             else $this->replaceIndex($i - $step);
             $step++;
         }
         return $this;
     }
 
-    function replaceRand($count = 1){
-        $word = $this->replaceHistory->from;
-        $pattern = "/$word/i";
-        preg_match_all($pattern, $this->str, $match);
-        $found = $match[0];
+    function replaceRand($count = 1, $byWord = true){
+        $word  = $this->replaceHistory->from;
+        $found = $this->getMatches($word, $byWord);
         $matches_count = count($found);
-
         $rnd = range(1, $matches_count);
         shuffle($rnd);
         $rnd = array_slice($rnd, 0, $count);
@@ -82,6 +73,26 @@ class Transformer {
             $this->replaceIndex($index);
         }
         return $rnd;
+    }
+    
+    function replaceAfter($index = 1, $byWord = true){
+        $word  = $this->replaceHistory->from;
+        $found = $this->getMatches($word, $byWord);
+        $matches_count = count($found);
+        for($i = $matches_count;$i > $index;$i--){
+            $this->replaceIndex($i);
+        }
+        return $this;
+    }
+    
+    function replaceBefore($index = 1, $byWord = true){
+        $word  = $this->replaceHistory->from;
+        $found = $this->getMatches($word, $byWord);
+        $matches_count = count($found);
+        for($i = $index-1;$i > 0;$i--){
+            $this->replaceIndex($i);
+        }
+        return $this;
     }
     
     function highlightWord($word = null){
@@ -95,18 +106,21 @@ class Transformer {
     }
 
     function process(){
-        $match = $this->getMatchedParts();
-        $copy = $match;
+        $history = $this->replaceHistory;
+        $from    = $history->from;
+        $to      = $history->to;
+        $match   = $this->getTagsMatch();
+        $copy    = $match;
         for($i = 0;$i < count($match);$i++){
-            $match[$i] = str_replace($this->from, $this->to, $match[$i]);
+            $match[$i] = str_replace($from, $to, $match[$i]);
             if($match[$i] !== $copy[$i]) $this->str = str_replace($copy[$i], $match[$i], $this->str);
         }
         return $this;
     }
 
-    function getAsString(){
+    function getString(){
         return $this->str;
     }
 
-}   
+}  
 ?>

@@ -7,11 +7,6 @@ class Transformer {
     function __construct($str){
         $this->str = $str;
     }
-
-    function toLower(){
-        $this->str = strtolower($this->str);
-        return $this;
-    }
     
     function getTagsMatch(){
         preg_match_all('/\>(.*)\</', $this->str, $match);
@@ -30,7 +25,7 @@ class Transformer {
         return $this->replaceHistory;
     }
     
-    function getMatches($word = '', $byWord  = true) {
+    function getMatches($word = '', $byWord = true) {
         $pattern = $byWord === true ? "/\b$word\b/i" : "/$word/i";
         preg_match_all($pattern, $this->str, $match);
         return $match[0];
@@ -41,7 +36,7 @@ class Transformer {
         $from    = $history->from;
         $to      = $history->to;
         $search  = preg_quote($from);
-        $this->str = preg_replace("/^((?:(?:.*?$search){".--$index."}.*?))$search/i", "$1$to", $this->str); 
+        $this->str = preg_replace("/^((?:(?:.*?$search){".--$index."}.*?))$search/i", "$1$to", $this->str);
         return $this;
     }
     
@@ -55,6 +50,14 @@ class Transformer {
             if($i === 1) $this->replaceIndex($i);
             else $this->replaceIndex($i - $step);
             $step++;
+        }
+        return $this;
+    }
+
+    function replaceLast($count = 1, $byWord = true){
+        $found = count($this->getMatches($this->replaceHistory->from, $byWord));
+        for($i = $found;$i > $count;$i--){
+            $this->replaceIndex($i);
         }
         return $this;
     }
@@ -104,7 +107,12 @@ class Transformer {
             return ["from" => $pos, "till" => $till];
         }
     }
-
+    
+    function removeBreaks(){
+        $this->str = preg_replace("/\r|\n/", "", $this->str);
+        return $this;
+    }
+    
     function process(){
         $history = $this->replaceHistory;
         $from    = $history->from;
@@ -122,5 +130,5 @@ class Transformer {
         return $this->str;
     }
 
-}  
+}
 ?>
